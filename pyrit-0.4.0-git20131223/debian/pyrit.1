@@ -1,0 +1,531 @@
+.TH PYRIT 1 "2011-03-28" "pyrit" PYRIT
+.SH NAME
+pyrit \- A GPGPU-driven WPA/WPA2-PSK key cracker
+.SH SYNOPSIS
+.B pyrit
+.RI [ options ]
+.I command
+.SH DESCRIPTION
+Pyrit exploits the computational power of many-core- and GPGPU-platforms
+to create massive databases, pre-computing part of the WPA/WPA2-PSK
+authentication phase in a space-time tradeoff. It is a powerful attack against
+one of the world's most used security-protocols.
+.sp
+This document tries to describe and explain all functions the commandline-client
+\fBpyrit\fP provides.
+One or more \fBoptions\fP may be given on the commandline to customize a
+\fBcommand\fP. The exact behaviour of \fBoptions\fP depends on the
+\fBcommand\fP.
+.sp
+At the time of this writing, cowpatty is not available in Debian.
+References to cowpatty and its commands are nevertheless preserved for the sake
+of completeness.
+.SH OPTIONS
+Pyrit recognizes the following options:
+.TP
+.BR \-b " BSSID"
+Specifies a BSSID. Can be used to restrict commands to certain Access-Points.
+.TP
+.BR \-e " ESSID"
+Specifies the ESSID. Commands usually refer to all ESSIDs in the database when
+this option is omitted.
+.TP
+.BR \-i " infile"
+Specifies a filename to read from; the special filename "-" can be used
+for \fBstdin\fP. The file may be gzip-compressed in which case its name must
+end in \fB.gz\fP for transparent decompression.
+.TP
+.BR \-o " outfile"
+Specifies a filename to write to; the special filename "-" can be used
+for \fBstdout\fP. Filenames that end in \fB.gz\fP cause \fBpyrit\fP to
+gzip-compress the file on the fly.
+.TP
+.BR \-r " capture-file"
+Specifies a packet-capture file in pcap format (possibly gzip-compressed) or a
+device (e.g.: "wlan0") to capture from.
+.TP
+.BR \-u " URL"
+Specifies the URL of the storage-device in the form of
+.sp
+.RS 12
+.nf
+driver://username:password@host:port/database
+.fi
+.RE
+.sp
+.RS
+Pyrit can use the filesystem, a remote Pyrit-Relay-Server and, if the
+package \fBpython-sqlalchemy\fP is installed, SQL-Databases as storage. The
+driver \fIfile://\fP refers to Pyrit's own filesystem-based storage,
+\fIhttp://\fP connects to a Pyrit-Relay-Server and all other URLs are passed
+directly to \fBpython-sqlalchemy\fP, if available. The default storage-URL
+can also be specified by the key \fBdefaultstorage\fP in \fBpyrit\fP's
+configuration file (see \fBFILES\fP below).
+.RE
+.TP
+.BR \-\-all\-handshakes
+The commands \fBattack_batch\fP, \fBattack_db\fP, \fBattack_cowpatty\fP and
+\fBattack_passthrough\fP automatically use the single handshake of highest quality
+only. In some cases even this handshake may have been wrongfully
+reconstructed from the captured data, rendering the attack futile. In case more
+than one EAPOL-handshake is reconstructed from the capture-file, the option
+\fB\-\-all\-handshakes\fP may be used to attack all handshakes reconstructable
+from the captured data. Exact behaviour of the commands affected by this option
+is described below.
+.SH COMMANDS
+.TP
+.B analyze
+Parse one or more packet-capture files (in pcap-format, possibly
+gzip-compressed) given by the option \fB\-r\fP and try to detect
+Access-Points, Stations and EAPOL-handshakes.  For example:
+.sp
+.RS 12
+.nf
+pyrit \-r "test*.pcap" analyze
+.fi
+.RE
+.sp
+.RS
+Pyrit shows a list of Access-Points, associated Stations and
+EAPOL-handshakes that could be identified from the captured data. Handshakes
+are shown ordered by their "quality":
+.sp
+.RS 12
+\fBGood:\fP
+The handshake includes the challenge from the Access-Point, the
+response from the Station and the confirmation from the Access-Point.
+
+\fBWorkable:\fP
+The handshake includes the response from the Station and the
+confirmation from the Access-Point. The challenge was not captured.
+
+\fBBad:\fP
+The handshake includes the challenge from the Access-Point and the
+response from the Station. The confirmation was not captured.
+
+Handshakes of the same quality are ordered by how close the packets that
+make up the handshake are to each other.
+.RE
+.TP
+.B attack_batch
+Attack an EAPOL-handshake found in the packet-capture file(s) given by the
+option \fB\-r\fP using the Pairwise Master Keys and passwords stored in the
+database. The options \fB\-b\fP and \fB\-e\fP can be used to specify the
+Access-Point to attack; it is picked automatically if both options are omitted.
+The password is written to the filename given by the option \fB\-o\fP if
+specified. For example:
+.sp
+.RS 12
+.nf
+pyrit \-r test.pcap \-e MyNetwork \-b 00:de:ad:c0:de:00 \\
+    \-o MyNetworkPassword.txt attack_batch
+.fi
+.RE
+.sp
+.RS
+Pairwise Master Keys that previously have been computed and stored in the database
+are taken from there; all other passwords are translated into their
+respective Pairwise Master Keys and added to the database for later re-use.
+ESSIDs are created automatically in the database if necessary.
+
+Pyrit works down the list of reconstructed EAPOL-handshakes in case the option
+\fB\-\-all\-handshakes\fP is supplied.
+.RE
+.TP
+.B attack_cowpatty
+Attack an EAPOL-handshake found in the packet-capture file(s) given by the
+option \fB\-r\fP using Pairwise Master Keys from a cowpatty-like file (e.g.
+generated by ``genpmk'' from cowpatty, or \fBexport_cowpatty\fP
+below) given by the option \fB\-f\fP. The options
+\fB\-b\fP and \fB\-e\fP can be used to specify the Access-Point to attack;
+it is picked automatically if both options are omitted. The password is
+written to the filename given by the option \fB\-o\fP if specified.
+The cowpatty-file may be gzip-compressed and must match the chosen ESSID.
+For example:
+.sp
+.RS 12
+.nf
+pyrit \-r test.pcap \-e MyOwnNetwork \\
+    \-i MyOwnNetwork.cow.gz \-o \- attack_cowpatty
+.fi
+.RE
+.sp
+.RS
+Pyrit's own database is not touched by \fBattack_cowpatty\fP.
+
+Pyrit attacks all EAPOL-handshakes at the same time if the option
+\fB\-\-all\-handshakes\fP is supplied. This will reduce througput (e.g.: 33% throughout
+in case of three handshakes).
+.RE
+.TP
+.B attack_db
+Attack an EAPOL-handshake found in the packet-capture file(s) given by the
+option \fB\-r\fP using the Pairwise Master Keys stored in the database. The
+options \fB\-b\fP and \fB\-e\fP can be used to specify the Access-Point to
+attack; it is picked automatically if both options are omitted.
+The password is written to the filename given by the option \fB\-o\fP if
+specified. For example:
+.sp
+.RS 12
+.nf
+pyrit \-r test.pcap \-e MyOtherNetwork attack_db
+.fi
+.RE
+.sp
+.RS
+Only Pairwise Master Keys that have been computed previously and are stored in
+the database are used by \fBattack_db\fP.
+
+Pyrit works down the list of reconstructed EAPOL-handshakes in case the option
+\fB\-\-all\-handshakes\fP is supplied.
+.RE
+.TP
+.B attack_passthrough
+Attack an EAPOL-handshake found in the packet-capture file(s) given by the option
+\fB\-r\fP using the passwords read from the file given by the option \fB\-i\fP.
+The options \fB\-b\fP and \fB\-e\fP can be used to specify the Access-Point to
+attack; it is picked automatically if both options are omitted. The password is
+written to the filename given by the option \fB\-o\fP if specified. For example:
+.sp
+.RS 12
+.nf
+pyrit \-r test.pcap \-b 00:de:ad:be:ef:00 \\
+    \-i words.txt attack_passthrough
+.fi
+.RE
+.sp
+.RS
+This command circumvents Pyrit's database and should only be used if
+storage-space is a problem (e.g. on LiveCDs). You should consider using
+\fBattack_batch\fP otherwise.
+
+Pyrit attacks all EAPOL-handshakes at the same time if the option
+\fB\-\-all\-handshakes\fP is supplied.
+.RE
+.TP
+.B batch
+.br
+Start to translate all passwords in the database into their respective Pairwise
+Master Keys and
+store the results in the database. The option \fB\-e\fP may be used to restrict
+this command to a single ESSID; if it is omitted, all ESSIDs are processed one
+after the other in undefined order. For example:
+.sp
+.RS 12
+.nf
+pyrit \-e NETGEAR batch
+.fi
+.RE
+.sp
+.RS
+The option \fB\-o\fP can be used to specify a filename the results should
+additionally be written to in cowpatty's binary format. The option
+\fB\-e\fP becomes mandatory and the ESSID is automatically created in the
+database if necessary. Pairwise Master Keys that previously have been computed
+and stored in the database are exported from there without further processing.
+Pyrit stops and exits if an \fBIOError\fP is raised while writing to the
+specified file. This makes it very convenient to
+pipe results directly to other programs but also keep them for later use. For
+example:
+.RE
+.sp
+.RS 12
+.nf
+pyrit \-e NETGEAR \-o \- batch | \\
+    cowpatty \-d \- \-r wpatestcapture.cap \-s NETGEAR
+.fi
+.RE
+.TP
+.B benchmark
+Determine the peak-performance of the available hardware by computing
+dummy-results. For example:
+.sp
+.RS 12
+.nf
+pyrit benchmark
+.fi
+.RE
+.TP
+.B check_db
+Unpack the entire database and check for errors like data corruption or
+reference errors. This function does not check the value of computed results
+(see \fBverify\fP). For example:
+.sp
+.RS 12
+.nf
+pyrit check_db
+.fi
+.RE
+.TP
+.B create_essid
+Add new ESSIDs to the database. A single ESSID may be given by the option \fB\-e\fP.
+Multiple ESSIDs can be created by supplying a file (one per line) via the
+option \fB\-i\fP. Re-creating an existing ESSID does not result in an error. For
+example:
+.sp
+.RS 12
+.nf
+pyrit \-e NETGEAR create_essid
+.fi
+.RE
+.TP
+.B delete_essid
+Delete the ESSID given by \fB\-e\fP from the database. This includes all results
+that may have been stored for that particular ESSID. For example:
+.sp
+.RS 12
+.nf
+pyrit \-e NETGEAR delete_essid
+.fi
+.RE
+.TP
+.B eval
+.br
+Count all available passwords, all ESSIDs and their respective results in the
+database. For example:
+.sp
+.RS 12
+.nf
+pyrit eval
+.fi
+.RE
+.TP
+.B export_passwords
+Write all passwords that are currently stored in the database to a new file
+given by \fB\-o\fP. Passwords are terminated by a single newline-character
+("\\n"). Existing files are overwritten without confirmation. For example:
+.sp
+.RS 12
+.nf
+pyrit \-o myword.txt.gz export_passwords
+.fi
+.RE
+.TP
+.B export_cowpatty
+Write all results for the ESSID given by \fB\-e\fP to the file given by \fB\-o\fP
+in cowpatty's binary format. Existing files are overwritten without
+confirmation. For example:
+.sp
+.RS 12
+.nf
+pyrit \-o NETGEAR.cow \-e NETGEAR export_cowpatty
+.fi
+.RE
+.TP
+.B export_hashdb
+Write all results currently stored in the database to the airolib-ng-database
+given by \fB\-o\fP. The database is created with a default table layout if the
+file does not yet exist. The option \fB\-e\fP can be used to limit the export
+to a single ESSID. For example:
+.sp
+.RS 12
+.nf
+pyrit \-o NETGEAR.db \-e NETGEAR export_hashdb
+.fi
+.RE
+.TP
+.B import_passwords
+Read the file given by \fB\-i\fP and import one password per line to the
+database. The passwords may contain all characters (including NULL-bytes) apart
+from the terminating newline-character ("\\n").
+Passwords that are not suitable for being used with WPA-/WPA2-PSK are ignored.
+Pyrit's storage-implementation guarantees that all passwords remain
+unique throughout the entire database. For example:
+.sp
+.RS 12
+.nf
+pyrit \-i dirty_words.txt import_passwords
+.fi
+.RE
+.TP
+.B import_unique_passwords
+Read the file given by \fB\-i\fP and import one password per line to the
+database. The passwords may contain all characters (including NULL-bytes) apart
+from the terminating newline-character ("\\n"). Passwords that are not suitable
+for being used with WPA-/WPA2-PSK are ignored. This command does not check
+if there are duplicate passwords within the file or between the file and the
+database; it should be used with caution to prevent the database from getting
+poisoned with duplicated passwords. This command however can be much faster than
+\fBimport_passwords\fP. For example:
+.sp
+.RS 12
+.nf
+pyrit \-i dirty_words.txt import_unique_passwords
+.fi
+.RE
+.TP
+.B list_cores
+Show a list of all available hardware modules Pyrit currently uses. For
+example:
+.sp
+.RS 12
+.nf
+pyrit list_cores
+.fi
+.RE
+.TP
+.B list_essids
+Show a list of all ESSIDs currently stored in the database. This function is
+faster than \fBeval\fP in case you don't need to know the number of computed
+results. For example:
+.sp
+.RS 12
+.nf
+pyrit list_essids
+.fi
+.RE
+.TP
+.B passthrough
+.br
+Read passwords from the file given by \fB\-i\fP and compute their Pairwise
+Master Keys for the
+ESSID given by \fB\-e\fP. The results are written to the file specified by
+\fB\-o\fP in cowpatty's binary format and are not stored in the
+database for later use. This command therefor circumvents the entire database
+and should only be used if storage-space is a problem (e.g. when using
+Pyrit on a LiveCD). The \fBbatch\fP-command provides exactly the same
+functionality as \fBpassthrough\fP but can give much better performance as
+results may be read from the database instead of recomputing them. For
+example:
+.sp
+.RS 12
+.nf
+pyrit \-i dirty_words.txt.gz \-e NETGEAR \\
+    \-o \- passthrough | cowpatty \-d \- \\
+    \-r wpatestcapture.cap \-s NETGEAR
+.fi
+.RE
+.TP
+.B relay
+.br
+Start a server to relay another storage device via XML-RPC; other
+Pyrit-clients can use the server as storage-device. This allows one to have
+network-based access to storage source that don't provide network-access on
+their own (like \fIfile://\fP and \fIsqlite://\fP) or hide a SQL-database
+behind a firewall and let multiple clients access that database only via
+Pyrit's RPC-interface.  The TCP-port 17934 must be open for this function
+to work. For example, on the server (where the database is):
+.sp
+.RS 12
+.nf
+pyrit \-u sqlite://var/local/pyrit.db relay
+.fi
+.RE
+.sp
+.RS
+and the client (where the big GPU is):
+.RE
+.sp
+.RS 12
+.nf
+pyrit \-u http://192.168.0.100:17934 batch
+.fi
+.RE
+.TP
+.B selftest
+Run an extensive selftest for about 60 seconds. This test includes the entire
+scheduling-mechanism and all cores that are listed by \fBlist_cores\fP. You can
+use this function to detect broken hardware-modules or malicious
+network-clients. For example:
+.sp
+.RS 12
+.nf
+pyrit selftest
+.fi
+.RE
+.TP
+.B serve
+.br
+Start a server that provides access to the local computing hardware to help
+other Pyrit clients. The server's IP-address should be added to the
+client's configuration file (see \fBFILES\fP) as a space-separated list under
+\fBknown_clients\fP. The client's \fBrpc_server\fP-setting must also be
+set to 'true'. The TCP- and UDP-Port 17935 must be accessible. For
+example, on the server (where the GPU is):
+.sp
+.RS 12
+.nf
+pyrit serve
+.fi
+.RE
+.sp
+.RS
+and on the client (the server's IP-address has been added to
+\fBknown_clients\fP and \fBrpc_server\fP is set to 'true'):
+.RE
+.sp
+.RS 12
+.nf
+pyrit \-r test.pcap \-b 00:de:ad:be:ef:00 \\
+    \-i words.txt attack_passthrough
+.fi
+.RE
+.TP
+.B strip
+.br
+Parse one or more packet-capture files given by the option \fB\-r\fP, extract
+only packets that are necessary for EAPOL-handshake detection and write a new
+dump to the filename given by the option \fB\-o\fP. The options \fB\-e\fP and
+\fB\-b\fP can be used to filter certain Access-Points. For example:
+.sp
+.RS 12
+.nf
+pyrit \-r "large_dumps_*.pcap" \-e MyNetwork \\
+    \-o tiny_compressed_dump_MyNetwork.dump.gz strip
+.fi
+.RE
+.TP
+.B stripLive
+Parse a packet-capture file given by the option \fB\-r\fP, extract only packets
+that are necessary for EAPOL-handshake detection and write a new dump to the
+file given by the option \fB\-o\fP. This command differs from \fBstrip\fP as the
+capture-file can be any character device including sockets and other
+pseudo-files that \fIlook like\fP files in pcap-format. \fBstripLive\fP writes
+relevant packets to the new file given by \fB\-o\fP as they arrive instead of
+trying to read the entire capture-file first.
+.sp
+.RS 12
+.nf
+pyrit \-r /temp/kismet_dump \-o small_dump.pcap stripLive
+.fi
+.RE
+.TP
+.B verify
+.br
+Randomly pick 10% of the results stored in the database and verify their value
+by recomputation. You need this function if you suspect broken hardware or
+malicious network-clients. For example:
+.sp
+.RS 12
+.nf
+pyrit \-e NETGEAR verify
+.fi
+.RE
+.SH EXIT STATUS
+If \fBcommand\fP succeeds, \fBpyrit\fP's process exit status is set to 0;
+otherwise it is set to 1 and (usually) an error message or a python-traceback is
+written to stderr. The following commands also indicate an error condition in certain cases:
+.RS 12
+    \fBanalyze:\fP Not at least one valid EAPOL-handshake could be detected.
+
+    \fBattack_passthrough, attack_batch, attack_db and attack_cowpatty:\fP The password could not be found.
+
+    \fBverify\fP At least one workunit contained invalid results.
+
+    \fBcheck_db\fP Errors in the database were found (and possibly fixed).
+                                                                                                                                                                      
+.SH FILES
+.TP
+.I ~/.pyrit/config
+The \fBpyrit\fP configuration file. You can find a documented example in
+\fI/usr/share/doc/pyrit/examples/config.example\fP.
+.SH NOTES
+The author does not encourage or support using \fBpyrit\fP for the infringement
+of people's communication-privacy. The exploration and realization of the
+technology discussed here motivate as a purpose of their own; this is
+documented by the open development, strictly sourcecode-based distribution and 'copyleft'-licensing.
+.SH AUTHOR
+\fBpyrit\fP was written by Lukas Lueg <lukas.lueg@gmail.com>.
+.PP
+This manual page was written by Christian Kastner <debian@kvr.at>
+for the Debian project (but may be used by others).

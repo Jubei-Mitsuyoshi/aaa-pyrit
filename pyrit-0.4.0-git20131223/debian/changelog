@@ -1,0 +1,71 @@
+pyrit (0.4.0-git20131223) unstable; urgency=low
+
+  * new git source
+  *rules file changed, all the cores stuff was fucking up
+  *cpyrit-cuda
+
+ -- Jubei Mitsuyoshi <jubei.house.of.five.masters@gmail.com>  Sat, 23 Nov 2013 20:32:00 +0100
+
+pyrit (0.4.0-1) unstable; urgency=low
+
+  * New upstream version.
+  * debian/control:
+    - Upgraded Depends on python-all-dev to versioned dependency (>= 2.5) due to
+      use of "with" statement
+    - Added Depends on libpcap-dev (new upstream requirement) 
+    - Downgraded Depends for python-sqlalchemy to 0.5.6 (new upstream feature)
+    - Don't start package description with article ("A" in this case)
+  * debian/watch:
+    - Simplified, as Google Code now provides hrefs in the Downloads list again
+  debian/pyrit.1:
+    - Sync'ed man page with upstream documentation for this version
+    - Minor corrections
+  * debian/patches dropped (implemented/included upstream):
+    - 0001-Add-OpenSSL-linking-exception-from-upstream
+    - 0002-Clean-up-after-unit-tests
+    - 0004-Fixed-deprecation-warning-generated-by-sql-alchemy
+    - 0005-Link-against-libcrypto-not-libssl
+    - 0007-add-option-to-limit-cores
+    - 0008-disable-optimizations-on-i386
+    - 0009-exception-handling-fix
+    - 0010-Add-SHA1-licensing-update-from-upstream
+    - 0011-fix-list-index-error
+    - 0012-fix-SSE2-detection
+    - 0013-FTBFS-on-failed-unit-tests
+
+ -- Christian Kastner <debian@kvr.at>  Mon, 04 Apr 2011 22:26:24 +0200
+
+pyrit (0.3.0-2) unstable; urgency=low
+
+  * debian/control:
+    - Bump Standards-Version to 3.9.1 (no changes needed)
+    - Updated package description, indicating that optimizations are detected
+      at run-time (a result of dropping patch 0008 and adding 0012).
+  * debian/patches:
+    - Added 0012-fix-SSE2-detection
+      Fixes a crash in run-time SSE2 detection on systems with MMX but no SSE2
+    - Added 0013-FTBFS-on-failed-unit-tests
+      Unit test failures should result in a FTBFS so that issues such as
+      #589995 are properly caught. Closes: #590520
+    - Dropped 0008-disable-optimizations-on-i386
+      Misguided patch; support for MMX/SSE2/VIA PADLOCK is detected at runtime
+ 
+ -- Christian Kastner <debian@kvr.at>  Tue, 24 Aug 2010 20:48:11 +0200
+
+pyrit (0.3.0-1) unstable; urgency=low
+
+  * Initial release (Closes: #570918)
+  * debian/patches:
+    - 0001-Add-OpenSSL-linking-exception-from-upstream
+    - 0002-Clean-up-after-unit-tests
+    - 0003-Add-man-page-for-pyrit-1
+    - 0004-Fixed-deprecation-warning-generated-by-sql-alchemy
+    - 0005-Link-against-libcrypto-not-libssl
+    - 0006-custom-config-file
+    - 0007-add-option-to-limit-cores
+    - 0008-disable-optimizations-on-i386
+    - 0009-exception-handling-fix
+    - 0010-Add-SHA1-licensing-update-from-upstream
+    - 0011-fix-list-index-error
+
+ -- Christian Kastner <debian@kvr.at>  Wed, 21 Jul 2010 23:53:59 +0200

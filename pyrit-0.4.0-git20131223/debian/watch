@@ -1,0 +1,3 @@
+version=3
+http://code.google.com/p/pyrit/downloads/list \
+http://pyrit.googlecode.com/files/pyrit-([0-9.]+).tar.gz

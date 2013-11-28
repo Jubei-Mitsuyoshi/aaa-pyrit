@@ -1,0 +1,26 @@
+From: Christian Kastner <debian@kvr.at>
+Date: Wed, 13 Apr 2011 21:16:23 +0200
+Subject: PerformanceCounter: handle empty result gracefully
+
+Handle cases in which no result is produced (eg: because of a window timeout)
+gracefully.
+
+Bug: http://code.google.com/p/pyrit/issues/detail?id=293
+Bug-Debian: http://bugs.debian.org/620991
+Origin: other, http://code.google.com/p/pyrit/issues/detail?id=293
+Forwarded: not-needed
+Last-Update: 2011-04-17
+
+Index: pyrit-0.4.0/cpyrit/util.py
+===================================================================
+--- pyrit-0.4.0.orig/cpyrit/util.py	2011-04-13 21:21:49.063998293 +0200
++++ pyrit-0.4.0/cpyrit/util.py	2011-04-13 21:22:20.419996889 +0200
+@@ -374,7 +374,7 @@
+ 
+     def __purge(self):
+         t = time.time()
+-        if t - self.datapoints[0][0] > self.window:
++        if len(self.datapoints) > 0 and t - self.datapoints[0][0] > self.window:
+             self.datapoints = filter(lambda x: (t - x[0]) < self.window, \
+                                                 self.datapoints)
+ 

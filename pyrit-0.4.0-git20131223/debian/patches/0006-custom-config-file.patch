@@ -1,0 +1,39 @@
+From: Christian Kastner <debian@kvr.at>
+Date: Tue, 6 Jul 2010 21:26:16 +0200
+Subject: [PATCH] Support custom config file location
+
+This patch adds the ability to specify a custom config file via the environment
+variable PYRIT_CONFIG_FILE.
+
+Forwarded: yes 
+Last-Update: 2010-07-06
+
+Index: pyrit-0.3.0/cpyrit/config.py
+===================================================================
+--- pyrit-0.3.0.orig/cpyrit/config.py	2010-07-06 21:25:49.757926753 +0200
++++ pyrit-0.3.0/cpyrit/config.py	2010-07-06 21:26:41.385840773 +0200
+@@ -56,10 +56,18 @@
+ configpath = os.path.expanduser(os.path.join('~', '.pyrit'))
+ default_configfile = os.path.join(configpath, 'config')
+ 
+-if os.path.exists(default_configfile):
+-    cfg = read_configfile(default_configfile)
++if 'PYRIT_CONFIG_FILE' in os.environ:
++    custom_config = os.environ['PYRIT_CONFIG_FILE']
++    if not os.path.exists(custom_config):
++        print >> sys.stderr, \
++            "WARNING: custom config file %s does not exist" % custom_config
++    else:
++        cfg = read_configfile(custom_config)
+ else:
+-    cfg = default_config()
+-    if not os.path.exists(configpath):
+-        os.makedirs(configpath)
+-    write_configfile(cfg, default_configfile)
++    if os.path.exists(default_configfile):
++        cfg = read_configfile(default_configfile)
++    else:
++        cfg = default_config()
++        if not os.path.exists(configpath):
++            os.makedirs(configpath)
++        write_configfile(cfg, default_configfile)

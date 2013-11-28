@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+PYVERS = $(shell pyversions -r -v)
+
+# If DEB_BUILD_OPTIONS contains parallel=N, use N number of cores for the
+# unit tests as well. Whatever N is, pyrit won't use more than the number
+# of cores available. If unset, default to 1
+#NUMCORES = $(or $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS))),1)
+
+
+%:
+	dh $@ --with python2 
+
+#override_dh_auto_configure:
+#	dh_auto_configure
+#	sed -e 's,<CORES>,$(NUMCORES),' debian/config.build.in > debian/config.build
+
+override_dh_auto_test:
+
+#ifeq (,$(findstring nocheck,$(DEB_BUILD_OPTIONS)))
+#	set -e ;\
+#	for py in $(PYVERS); do \
+#		LIB=$$(ls -d $(CURDIR)/build/lib.*-$$py) ;\
+#		cd test ;\
+#		PYRIT_CONFIG_FILE=../debian/config.build PYTHONPATH=$$LIB \
+#			python$$py test_pyrit.py ;\
+#		cd .. ;\
+#	done
+#endif
+
+#override_dh_auto_clean:
+#	dh_auto_clean
+#	rm -f debian/config.build
+

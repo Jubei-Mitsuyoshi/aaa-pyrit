@@ -1,0 +1,29 @@
+From: Christian Kastner <debian@kvr.at>
+Date: Wed, 13 Apr 2011 21:22:42 +0200
+Subject: Increase timeout in unit tests
+
+As suggested in the referenced bug report, the window timeout for some unit
+tests has been increased to ensure they are properly run on lower-performance
+architectures. 
+
+Bug: http://code.google.com/p/pyrit/issues/detail?id=293
+Forwarded: not-needed
+Last-Update: 2011-04-13
+
+Index: pyrit-0.4.0/test/test_pyrit.py
+===================================================================
+--- pyrit-0.4.0.orig/test/test_pyrit.py	2011-04-13 21:24:39.812009244 +0200
++++ pyrit-0.4.0/test/test_pyrit.py	2011-04-13 21:24:47.392002671 +0200
+@@ -438,10 +438,10 @@
+         self.cli.print_help()
+ 
+     def testSelfTest(self):
+-        self.cli.selftest(timeout=3)
++        self.cli.selftest(timeout=60)
+ 
+     def testBenchmark(self):
+-        self.cli.benchmark(timeout=3)
++        self.cli.benchmark(timeout=60)
+ 
+     @requires_pckttools()
+     def testHandshakes(self):
