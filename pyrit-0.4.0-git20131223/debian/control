@@ -1,7 +1,7 @@
 Source: pyrit
 Section: net
 Priority: extra
-Maintainer: Python Applications Packaging Team <python-apps-team@lists.alioth.debian.org>
+Maintainer: Jubei Mitsuyoshi <jubei.house.of.five.masters@gmail.com>
 Uploaders: Christian Kastner <debian@kvr.at>
 Build-Depends:
     debhelper (>= 7.0.50~),
@@ -39,3 +39,6 @@ Description: GPGPU-driven WPA/WPA2-PSK key cracker
  and VIA PADLOCK detected at run-time. Support for non-free technologies such
  as Nvidia CUDA can be added through extensions, of which cpython-cuda is
  available
+ .
+ This is the git version of this package, repackaged from debian to aaa standards
+ it now works with the aaa* cpyrit-cuda package to enable gpu accelerated cracking
