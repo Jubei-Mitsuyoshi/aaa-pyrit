@@ -1,4 +1,4 @@
-pyrit (0.4.0-git20131223) unstable; urgency=low
+pyrit (0.4.0+git20131223-aaa) unstable; urgency=low
 
   * new git source
   *rules file changed, all the cores stuff was fucking up
